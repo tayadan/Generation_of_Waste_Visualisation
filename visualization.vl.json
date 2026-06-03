@@ -1,0 +1,315 @@
+{
+  "$schema": "https://vega.github.io/schema/vega-lite/v6.json",
+  "data": {
+    "url": "https://raw.githubusercontent.com/tayadan/csvfile/refs/heads/main/GWA01.csv"
+  },
+  "params": [
+    {
+      "name": "hazSelect",
+      "value": "Both",
+      "bind": {
+        "name": "Select Hazardousness: ",
+        "input": "select",
+        "options": ["Both", "Hazardous", "Non-hazardous"],
+        "labels": ["Both", "Hazardous Only", "Non-Hazardous Only"]
+      }
+    }
+  ],
+  "vconcat": [
+    {
+      "hconcat": [
+        {
+          "vconcat": [
+            {
+              "width": 180,
+              "height": 500,
+              "transform": [
+                {
+                  "filter": "datum['Waste Category'] == 'Total waste' && datum.VALUE != ''"
+                },
+                {"calculate": "toNumber(datum.VALUE)", "as": "WasteValue"},
+                {
+                  "filter": "datum.Hazardousness != 'Hazardous and non-hazardous - Total[HAZ_NHAZ]'"
+                },
+                {
+                  "filter": "hazSelect == 'Both' ? true : hazSelect == 'Hazardous' ? datum.Hazardousness == 'Hazardous[HAZ]' : datum.Hazardousness == 'Non-hazardous[NHAZ]'"
+                }
+              ],
+              "mark": {"type": "line", "point": true},
+              "encoding": {
+                "x": {"field": "Year", "type": "temporal"},
+                "y": {
+                  "aggregate": "sum",
+                  "field": "WasteValue",
+                  "type": "quantitative",
+                  "title": "Total Waste (Tonnes)"
+                },
+                "opacity": {
+                  "field": "Hazardousness",
+                  "type": "nominal",
+                  "scale": {
+                    "domain": ["Hazardous[HAZ]", "Non-hazardous[NHAZ]"],
+                    "range": [1, 0.6]
+                  }
+                },
+                "tooltip": [
+                  {"field": "Hazardousness"},
+                  {"field": "Year", "type": "temporal"},
+                  {
+                    "aggregate": "sum",
+                    "field": "WasteValue",
+                    "title": "Total Waste (Tonnes)"
+                  }
+                ]
+              },
+              "title": "Total Waste Over Time"
+            }
+          ]
+        },
+        {
+          "vconcat": [
+            {
+              "width": 800,
+              "height": 500,
+              "transform": [
+                {"filter": "datum.VALUE != ''"},
+                {"calculate": "toNumber(datum.VALUE)", "as": "WasteValue"},
+                {
+                  "calculate": "replace(split(datum['NACE'], '(')[1], /[^A-Z]/g, '')",
+                  "as": "temp_val"
+                },
+                {
+                  "calculate": "datum.temp_val == 'CC' ? 'C' : datum.temp_val == 'EEE' ? 'E' : datum.temp_val",
+                  "as": "val"
+                },
+                {"filter": "datum.val != ''"},
+                {
+                  "calculate": "datum.val == 'A' ? 'Agriculture, forestry and fishing' : datum.val == 'B' ? 'Mining and quarrying' : datum.val == 'C' ? 'Manufacturing' : datum.val == 'D' ? 'Electricity, gas, steam and air supply' : datum.val == 'E' ? 'Water supply and collection' : datum.val == 'F' ? 'Construction' : datum.val == 'G' ? 'Services' : datum.val == 'EPHH' ? 'Households' : datum.val",
+                  "as": "NACE_Sector"
+                },
+                {"filter": "datum.NACE_Sector != 'TOTALHH'"},
+                {
+                  "filter": "datum.Hazardousness != 'Hazardous and non-hazardous - Total[HAZ_NHAZ]'"
+                },
+                {
+                  "filter": "hazSelect == 'Both' ? true : hazSelect == 'Hazardous' ? datum.Hazardousness == 'Hazardous[HAZ]' : datum.Hazardousness == 'Non-hazardous[NHAZ]'"
+                }
+              ],
+              "params": [
+                {
+                  "name": "sectorSelect",
+                  "select": {
+                    "type": "point",
+                    "fields": ["NACE_Sector"],
+                    "toggle": true
+                  }
+                }
+              ],
+              "mark": {"type": "line", "point": true, "interpolate": "linear"},
+              "encoding": {
+                "x": {"field": "Year", "type": "temporal"},
+                "y": {
+                  "aggregate": "sum",
+                  "field": "WasteValue",
+                  "type": "quantitative",
+                  "title": "Total Waste (Tonnes)"
+                },
+                "color": {
+                  "field": "NACE_Sector",
+                  "type": "nominal",
+                  "legend": {"orient": "right", "title": "Sector"}
+                },
+                "strokeDash": {
+                  "field": "Hazardousness",
+                  "type": "nominal",
+                  "scale": {
+                    "domain": ["Hazardous[HAZ]", "Non-hazardous[NHAZ]"],
+                    "range": [[1, 0], [4, 2]]
+                  },
+                  "legend": {"orient": "right", "title": "Hazardous?"}
+                },
+                "opacity": {
+                  "condition": {"param": "sectorSelect", "value": 1},
+                  "value": 0
+                },
+                "tooltip": [
+                  {"field": "NACE_Sector", "title": "Sector"},
+                  {"field": "Year", "type": "temporal"},
+                  {
+                    "aggregate": "sum",
+                    "field": "WasteValue",
+                    "title": "Total Waste (Tonnes)"
+                  },
+                  {"field": "Hazardousness"}
+                ]
+              },
+              "title": "Hazardous vs Non-Hazardous Waste Over Time by NACE Sector"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "width": 1050,
+      "height": 200,
+      "transform": [
+        {"filter": "datum.VALUE != ''"},
+        {"calculate": "toNumber(datum.VALUE)", "as": "WasteValue"},
+        {
+          "calculate": "replace(split(datum['NACE'], '(')[1], /[^A-Z]/g, '')",
+          "as": "temp_val"
+        },
+        {
+          "calculate": "datum.temp_val == 'CC' ? 'C' : datum.temp_val == 'EEE' ? 'E' : datum.temp_val",
+          "as": "val"
+        },
+        {"filter": "datum.val != 'TOTALHH' && datum.val != ''"},
+        {
+          "filter": "datum.Hazardousness != 'Hazardous and non-hazardous - Total[HAZ_NHAZ]'"
+        },
+        {
+          "calculate": "datum.val == 'A' ? 'Agriculture, forestry and fishing' : datum.val == 'B' ? 'Mining and quarrying' : datum.val == 'C' ? 'Manufacturing' : datum.val == 'D' ? 'Electricity, gas, steam and air supply' : datum.val == 'E' ? 'Water supply and collection' : datum.val == 'F' ? 'Construction' : datum.val == 'G' ? 'Services' : datum.val == 'EPHH' ? 'Households' : datum.val",
+          "as": "NACE_Sector"
+        },
+        {
+          "filter": "hazSelect == 'Both' ? true : hazSelect == 'Hazardous' ? datum.Hazardousness == 'Hazardous[HAZ]' : datum.Hazardousness == 'Non-hazardous[NHAZ]'"
+        }
+      ],
+      "params": [
+        {
+          "name": "sectorSelect",
+          "select": {"type": "point", "fields": ["NACE_Sector"], "toggle": true}
+        }
+      ],
+      "mark": {"type": "bar", "tooltip": true},
+      "encoding": {
+        "y": {
+          "field": "NACE_Sector",
+          "type": "nominal",
+          "title": "NACE Sector",
+          "sort": "-x"
+        },
+        "x": {
+          "aggregate": "sum",
+          "field": "WasteValue",
+          "type": "quantitative",
+          "title": "Total Waste (Tonnes)"
+        },
+        "color": {"field": "NACE_Sector"},
+        "opacity": {
+          "field": "Hazardousness",
+          "type": "nominal",
+          "scale": {
+            "domain": ["Hazardous[HAZ]", "Non-hazardous[NHAZ]"],
+            "range": [1, 0.6]
+          },
+          "legend": {"title": "Hazardous?"}
+        },
+        "fillOpacity": {
+          "condition": {"param": "sectorSelect", "value": 1},
+          "value": 0.1
+        },
+        "tooltip": [
+          {"field": "NACE_Sector", "title": "Sector"},
+          {"field": "Hazardousness"},
+          {
+            "aggregate": "sum",
+            "field": "WasteValue",
+            "title": "Total Waste (Tonnes)"
+          }
+        ]
+      },
+      "title": "Total Waste by NACE Sector and Hazardousness"
+    },
+    {
+      "width": 105,
+      "height": 150,
+      "transform": [
+        {"filter": "datum.VALUE != ''"},
+        {"calculate": "toNumber(datum.VALUE)", "as": "WasteValue"},
+        {
+          "calculate": "replace(split(datum['NACE'], '(')[1], /[^A-Z]/g, '')",
+          "as": "temp_val"
+        },
+        {
+          "calculate": "datum.temp_val == 'CC' ? 'C' : datum.temp_val == 'EEE' ? 'E' : datum.temp_val",
+          "as": "val"
+        },
+        {"filter": "datum.val != ''"},
+        {
+          "calculate": "datum.val == 'A' ? 'Agriculture, forestry and fishing' : datum.val == 'B' ? 'Mining and quarrying' : datum.val == 'C' ? 'Manufacturing' : datum.val == 'D' ? 'Electricity, gas, steam and air supply' : datum.val == 'E' ? 'Water supply and collection' : datum.val == 'F' ? 'Construction' : datum.val == 'G' ? 'Services' : datum.val == 'EPHH' ? 'Households' : datum.val",
+          "as": "NACE_Sector"
+        },
+        {"filter": "datum.NACE_Sector != 'TOTALHH'"},
+        {"filter": "sectorSelect"},
+        {
+          "filter": "datum.Hazardousness != 'Hazardous and non-hazardous - Total[HAZ_NHAZ]'"
+        },
+        {
+          "calculate": "replace(split(datum['Waste Category'], '[')[1], /[^\\d]/g, '')",
+          "as": "temp_w"
+        },
+        {
+          "calculate": "datum.temp_w == '0105' || datum.temp_w == '011' || datum.temp_w == '012' || datum.temp_w == '013' || datum.temp_w == '02' || datum.temp_w == '032' || datum.temp_w == '033' || datum.temp_w == '05' ? 'Chemical and Medical Waste' : datum.temp_w == '0607' || datum.temp_w == '061' || datum.temp_w == '062' || datum.temp_w == '063' || datum.temp_w == '071' || datum.temp_w == '072' || datum.temp_w == '073' || datum.temp_w == '074' || datum.temp_w == '075' || datum.temp_w == '076' || datum.temp_w == '06' ? 'Recyclable Waste' : datum.temp_w == '07708' || datum.temp_w == '077' || datum.temp_w == '08' || datum.temp_w == '081' || datum.temp_w == '0841' ? 'Equipment and Battery Waste' : datum.temp_w == '09' || datum.temp_w == '091' || datum.temp_w == '092' || datum.temp_w == '093' || datum.temp_w == '091092' ? 'Animal and Vegetal Waste' : datum.temp_w == '10' || datum.temp_w == '101' || datum.temp_w == '102' || datum.temp_w == '103' ? 'Mixed Ordinary Waste' : datum.temp_w == '11' ? 'Sludges' : datum.temp_w == '1213' || datum.temp_w == '121' || datum.temp_w == '12' || datum.temp_w == '124' || datum.temp_w == '126' || datum.temp_w == '127' || datum.temp_w == '12813' || datum.temp_w == '12127' || datum.temp_w == '126127' || datum.temp_w == '13'? 'Mineral and Construction Waste' : datum.temp_w",
+          "as": "WasteGroup"
+        },
+        {"filter": "datum.WasteGroup != ''"},
+        {
+          "filter": "hazSelect == 'Both' ? true : hazSelect == 'Hazardous' ? datum.Hazardousness == 'Hazardous[HAZ]' : datum.Hazardousness == 'Non-hazardous[NHAZ]'"
+        }
+      ],
+      "params": [
+        {
+          "name": "sectorSelect",
+          "select": {"type": "point", "fields": ["NACE_Sector"], "toggle": true}
+        }
+      ],
+      "mark": "bar",
+      "resolve": {"scale": {"y": "independent"}},
+      "encoding": {
+        "x": {
+          "field": "NACE_Sector",
+          "type": "nominal",
+          "axis": {"labels": false, "ticks": false, "title": null}
+        },
+        "y": {
+          "aggregate": "sum",
+          "field": "VALUE",
+          "type": "quantitative",
+          "axis": {"title": null}
+        },
+        "opacity": {
+          "field": "Hazardousness",
+          "type": "nominal",
+          "scale": {
+            "domain": ["Hazardous[HAZ]", "Non-hazardous[NHAZ]"],
+            "range": [1, 0.6]
+          }
+        },
+        "fillOpacity": {
+          "condition": {"param": "sectorSelect", "value": 1},
+          "value": 0.1
+        },
+        "color": {"field": "NACE_Sector", "type": "nominal"},
+        "column": {
+          "field": "WasteGroup",
+          "axis": {"title": null},
+          "type": "nominal"
+        },
+        "tooltip": [
+          {"field": "WasteGroup", "title": "Waste Category"},
+          {"field": "NACE_Sector", "title": "Sector"},
+          {
+            "aggregate": "sum",
+            "field": "VALUE",
+            "title": "Total Waste (Tonnes)"
+          },
+          {"field": "Hazardousness"}
+        ]
+      },
+      "spacing": 2,
+      "title": "Total Waste per Waste Category"
+    }
+  ],
+  "config": {}
+}
